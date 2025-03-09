@@ -68,15 +68,20 @@ elif page == "📄 Resume Ranking":
 
         st.success("✅ Ranking completed!")
         st.subheader("📌 Ranked Resumes")
+        
+
 
         # Display results in a table
-        st.write(
-            "| Rank | Resume Name | Score |\n"
-            "|------|------------|-------|"
-        )
-        for i, (file, score) in enumerate(ranked_resumes, start=1):
-            st.write(f"| {i} | {file.name} | {score:.2f} |")
+        st.markdown("<h3>📊 Ranked Resumes</h3>", unsafe_allow_html=True)
 
+        # Styled Markdown Table
+        table_md = "| Rank | Resume Name | Score |\n|------|--------------|-------|\n"
+        for i, (file, score) in enumerate(ranked_resumes, start=1):
+            table_md += f"| {i} | {file.name} | {score:.2f} |\n"
+
+        st.markdown(table_md)
+
+       
         # Show top-ranked resume preview
         st.subheader("🏆 Top Ranked Resume")
         top_resume_text = extract_text_from_pdf(ranked_resumes[0][0])
