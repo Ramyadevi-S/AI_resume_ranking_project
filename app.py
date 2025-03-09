@@ -2,9 +2,9 @@ import streamlit as st
 from PyPDF2 import PdfReader
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import time
+import pandas as pd
 
-# Function to extract text from PDF
+# Function to extract text from PDFs
 def extract_text_from_pdf(file):
     pdf = PdfReader(file)
     text = ""
@@ -14,7 +14,7 @@ def extract_text_from_pdf(file):
             text += page_text + "\n"
     return text.strip() if text else "No readable text found."
 
-# Function to rank resumes based on similarity to job description
+# Function to rank resumes
 def rank_resumes(job_description, resumes):
     documents = [job_description] + resumes
     vectorizer = TfidfVectorizer().fit_transform(documents)
@@ -26,59 +26,56 @@ def rank_resumes(job_description, resumes):
     
     return cosine_similarities
 
-# ----- Streamlit UI -----
-st.set_page_config(page_title="AI Resume Screening", page_icon="📄", layout="wide")
+# Streamlit UI Setup
+st.set_page_config(page_title="AI Resume Screening & Ranking", layout="centered")
 
-# Sidebar Navigation
-st.sidebar.image("https://cdn-icons-png.flaticon.com/512/3281/3281323.png", width=100)
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["🏠 Home", "📄 Resume Ranking"])
+# Custom CSS for better styling
+st.markdown("""
+    <style>
+        .stTable {
+            border: 2px solid #E1E1E1;
+            border-radius: 10px;
+            background-color: white;
+            padding: 10px;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+        }
+        th {
+            background-color: #FF4B4B !important;
+            color: white !important;
+            text-align: left !important;
+            padding: 10px !important;
+        }
+        td {
+            padding: 8px !important;
+        }
+        .big-font {
+            font-size:20px !important;
+            font-weight: bold !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
-# Home Page
-if page == "🏠 Home":
-    st.title("Welcome to AI Resume Screening & Ranking System")
-    st.markdown("""
-        🔍 **This AI-powered app helps HR teams and recruiters quickly rank resumes based on job descriptions.**  
-        - **Upload multiple PDF resumes** 📄  
-        - **Enter a job description** ✍️  
-        - **Get ranked results instantly** 🚀  
-    """)
-    st.image("https://cdn-icons-png.flaticon.com/512/3048/3048122.png", width=300)
+# Title
+st.markdown("<h2 class='big-font'>📌 AI Resume Screening & Ranking</h2>", unsafe_allow_html=True)
 
-# Resume Ranking Page
-elif page == "📄 Resume Ranking":
-    st.title("📊 Resume Ranking System")
-    job_description = st.text_area("📝 Enter the Job Description", height=150)
+# Input job description
+job_description = st.text_area("🔹 Enter the Job Description")
 
-    uploaded_files = st.file_uploader("📂 Upload PDF resumes", type=["pdf"], accept_multiple_files=True)
+# Upload resumes
+uploaded_files = st.file_uploader("📂 Upload PDF Resumes", type=["pdf"], accept_multiple_files=True)
 
-    if uploaded_files and job_description:
-        st.info("Processing resumes... Please wait ⏳")
+# Processing and ranking resumes
+if uploaded_files and job_description:
+    resumes = [extract_text_from_pdf(file) for file in uploaded_files]
+    scores = rank_resumes(job_description, resumes)
 
-        resumes = []
-        progress_bar = st.progress(0)
+    # Creating a DataFrame for better visualization
+    ranked_resumes = sorted(zip(uploaded_files, scores), key=lambda x: x[1], reverse=True)
+    df = pd.DataFrame(
+        [{"Rank": i+1, "Resume Name": file.name, "Score": round(score, 2)}
+         for i, (file, score) in enumerate(ranked_resumes)]
+    )
 
-        for i, file in enumerate(uploaded_files):
-            resumes.append(extract_text_from_pdf(file))
-            progress_bar.progress((i + 1) / len(uploaded_files))
-
-        scores = rank_resumes(job_description, resumes)
-
-        ranked_resumes = sorted(zip(uploaded_files, scores), key=lambda x: x[1], reverse=True)
-
-        st.success("✅ Ranking completed!")
-        st.subheader("📌 Ranked Resumes")
-
-        # Display results in a table
-        st.write(
-            "| Rank | Resume Name | Score |\n"
-            "|------|------------|-------|"
-        )
-        for i, (file, score) in enumerate(ranked_resumes, start=1):
-            st.write(f"| {i} | {file.name} | {score:.2f} |")
-
-        # Show top-ranked resume preview
-        st.subheader("🏆 Top Ranked Resume")
-        top_resume_text = extract_text_from_pdf(ranked_resumes[0][0])
-        st.text_area("🔹 Top Resume Content", top_resume_text, height=300)
-
+    # Display results
+    st.subheader("📊 Ranked Resumes")
+    st.dataframe(df.style.format({"Score": "{:.2f}"}))
