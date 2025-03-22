@@ -23,7 +23,7 @@ NumPy
 bash
 Copy
 Edit
-git clone https://github.com/your-username/ai-resume-screening.git
+git clone https://github.com/Ramyadevi-S/AI_resume_ranking_project.git
 cd ai-resume-screening
 pip install -r requirements.txt
 streamlit run app.py
